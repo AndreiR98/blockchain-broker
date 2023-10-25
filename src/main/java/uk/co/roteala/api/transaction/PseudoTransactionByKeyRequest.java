@@ -2,16 +2,10 @@ package uk.co.roteala.api.transaction;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.co.roteala.common.BaseModel;
-import uk.co.roteala.common.SignatureModel;
-import uk.co.roteala.common.TransactionStatus;
-import uk.co.roteala.common.monetary.Coin;
-import uk.co.roteala.common.monetary.CoinConverter;
 
 import javax.validation.constraints.NotNull;
 

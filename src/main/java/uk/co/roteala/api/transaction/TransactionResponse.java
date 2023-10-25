@@ -26,8 +26,6 @@ public class TransactionResponse {
     private Integer blockNumber;
     private String from;
     private String to;
-    //@JsonSerialize(converter = CoinConverter.class)
-    private Fees fees;
     private Integer version;
     private Integer transactionIndex;
     @JsonSerialize(converter = CoinConverter.class)

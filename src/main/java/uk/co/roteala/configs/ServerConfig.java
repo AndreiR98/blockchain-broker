@@ -1,51 +1,45 @@
 package uk.co.roteala.configs;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.netty.channel.ChannelOption;
-import io.netty.handler.ssl.SslContextBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.rocksdb.RocksDBException;
+import org.apache.commons.io.input.ReaderInputStream;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
-import reactor.netty.http.server.HttpServer;
-import reactor.netty.http.server.HttpServerRoutes;
 import reactor.netty.http.websocket.WebsocketOutbound;
-import reactor.netty.tcp.SslProvider;
 import reactor.netty.tcp.TcpServer;
-import uk.co.roteala.common.AccountModel;
-import uk.co.roteala.common.ChainState;
-import uk.co.roteala.common.events.MessageActions;
-import uk.co.roteala.common.events.MessageTypes;
-import uk.co.roteala.common.events.MessageWrapper;
-import uk.co.roteala.common.monetary.Coin;
-import uk.co.roteala.common.monetary.MoveFund;
-import uk.co.roteala.handlers.TransmissionHandler;
-import uk.co.roteala.handlers.WebSocketRouterHandler;
-import uk.co.roteala.net.Peer;
-import uk.co.roteala.processor.MessageProcessor;
-import uk.co.roteala.services.MoveBalanceExecutionService;
-import uk.co.roteala.storage.StorageServices;
+import uk.co.roteala.common.storage.ColumnFamilyTypes;
+import uk.co.roteala.common.storage.StorageTypes;
+import uk.co.roteala.core.Blockchain;
+import uk.co.roteala.exceptions.StorageException;
+import uk.co.roteala.exceptions.errorcodes.StorageErrorCode;
 
-import java.io.*;
-import java.math.BigDecimal;
+import uk.co.roteala.security.ECKey;
+import uk.co.roteala.storage.Storages;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.security.KeyFactory;
-import java.security.PrivateKey;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Base64;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -54,100 +48,42 @@ import java.util.function.Consumer;
 @EnableScheduling
 @RequiredArgsConstructor
 public class ServerConfig {
-    private final StorageServices storage;
+    private final BrokerConfigs configs;
 
-    private final GlacierBrokerConfigs configs;
-
-
-    private List<Connection> connections = new ArrayList<>();
+    @Autowired
+    private final Storages storage;
 
     private List<WebsocketOutbound> webSocketConnections = new ArrayList<>();
 
-    /**
-     * Every 10 minutes check if any ophan transactions and pushed them to the miners
-     * */
-    @Scheduled(cron = "0 */10 * * * *")
-    public void pusher() {
-        Flux.fromIterable(this.storage.getPseudoTransactions())
-                .map(transaction -> {
-                    MessageWrapper wrapper = new MessageWrapper();
-                    wrapper.setAction(MessageActions.APPEND);
-                    wrapper.setContent(transaction);
-                    wrapper.setType(MessageTypes.MEMPOOL);
-
-                    return wrapper;
-                })
-                .delayElements(Duration.ofMillis(150))
-                .doOnNext(wrapper -> {
-                    for(Connection connection : this.connections) {
-                        connection.outbound()
-                                .sendObject(Mono.just(wrapper.serialize()))
-                                .then().subscribe();
-                    }
-                })
-                .then().subscribe();
-    }
-
-
     @Bean
-    public void genesisConfig() throws IOException, RocksDBException {
-        if(storage.getStateTrie() == null){
-            ObjectMapper mapper = new ObjectMapper();
-
-            //Read JSON accounts
-            ClassPathResource resource = new ClassPathResource("genesis.json");
-            InputStream inputStream = resource.getInputStream();
-
-            List<AccountModel> accounts = mapper.readValue(inputStream, new TypeReference<List<AccountModel>>() {});
-            List<String> accountsAddresses = new ArrayList<>();
-
-            //Initialzie state trie
-            ChainState stateTrie = new ChainState();
-            stateTrie.setTarget(3);
-            stateTrie.setLastBlockIndex(0);
-            stateTrie.setAllowEmptyMining(true);
-            stateTrie.setReward(Coin.valueOf(BigDecimal.valueOf(12L)));
-
-            accounts.forEach(accountModel -> accountsAddresses.add(accountModel.getAddress()));
-
-            stateTrie.setAccounts(accountsAddresses);
-
-            storage.addStateTrie(stateTrie, accounts);
-            storage.addBlock(stateTrie.getGenesisBlock().getHeader().getIndex().toString(),
-                    stateTrie.getGenesisBlock(), true);
+    @DependsOn({
+            "initializeStateTrieStorage",
+            "initializeMempoolStorage",
+            "initializeBlockchainStorage",
+            "initializePeersStorage"
+    })
+    public void genesisConfig() {
+        try {
+            if(!storage.getStorage(StorageTypes.STATE)
+                    .has(ColumnFamilyTypes.STATE, "state".getBytes(StandardCharsets.UTF_8))) {
+                Blockchain.initializeGenesisState(storage.getStorage(StorageTypes.STATE));
+            }
+        } catch (Exception e) {
+            log.error("Filed to initialize genesis state!", e);
+            throw new StorageException(StorageErrorCode.STORAGE_FAILED);
         }
-
-        Peer initialPeer = new Peer();
-        initialPeer.setAddress(configs.getInitialPeer());
-        initialPeer.setPort(7331);
-        initialPeer.setActive(true);
-
-        this.storage.addPeer(initialPeer);
     }
 
-    @Bean
-    public Mono<Void> startServer() {
-        return TcpServer.create()
-                .doOnConnection(connectionStorageHandler())
-                .option(ChannelOption.SO_KEEPALIVE, true)
-                .handle(transmissionHandler())
-                .port(7331)
-                .doOnBound(server -> log.info("Server started on address:{} and port:{}", server.address(), server.port()))
-                .doOnUnbound(server -> log.info("Server stopped!"))
-                .bindNow()
-                .onDispose();
-    }
-
-    @Bean
-    public Mono<Void> startWebsocket() {
-        return HttpServer.create()
-                .port(1337)
-                .route(routerWebSocket())
-                .doOnBind(server -> log.info("Websocket server started!"))
-                //.doOnConnection(webSocketConnectionHandler())
-                .bindNow()
-                .onDispose();
-    }
+    //@Bean
+//    public Mono<Void> startWebsocket() {
+//        return HttpServer.create()
+//                .port(1337)
+//                .route(routerWebSocket())
+//                .doOnBind(server -> log.info("Websocket server started!"))
+//                //.doOnConnection(webSocketConnectionHandler())
+//                .bindNow()
+//                .onDispose();
+//    }
 
    // @Bean
     public Consumer<Connection> webSocketConnectionHandler() {
@@ -164,9 +100,30 @@ public class ServerConfig {
         };
     }
 
+//    @Bean
+//    public Consumer<HttpServerRoutes> routerWebSocket() {
+//        return httpServerRoutes -> httpServerRoutes.ws("/stateChain", webSocketRouterStorage());
+//    }
+
     @Bean
-    public Consumer<HttpServerRoutes> routerWebSocket() {
-        return httpServerRoutes -> httpServerRoutes.ws("/stateChain", webSocketRouterStorage());
+    public void certificate() throws CertificateException, IOException {
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        ClassPathResource resource = new ClassPathResource("certificate.pem");
+        InputStream certificateStream = resource.getInputStream();
+
+        try {
+            Collection<? extends Certificate> certificates = certificateFactory.generateCertificates(certificateStream);
+            Iterator<? extends Certificate> certificatesIterator = certificates.iterator();
+
+            while (certificatesIterator.hasNext()) {
+                X509Certificate certificate = (X509Certificate) certificatesIterator.next();
+                log.info("Certificate({}) loaded!", certificate.getIssuerDN().getName());
+            }
+        } finally {
+            if (certificateStream != null) {
+                certificateStream.close();
+            }
+        }
     }
 
     @Bean
@@ -174,74 +131,24 @@ public class ServerConfig {
         return this.webSocketConnections;
     }
 
-    @Bean
-    public WebSocketRouterHandler webSocketRouterStorage() {
-        return new WebSocketRouterHandler(storage);
-    }
+//    @Bean
+//    public WebSocketRouterHandler webSocketRouterStorage() {
+//        return new WebSocketRouterHandler(storage);
+//    }
 
-    @Bean
-    public List<Connection> connectionStorage() {
-        return this.connections;
-    }
 
-    @Bean
-    public Consumer<Connection> handleClientDisconnect() {
-        return connection -> {
-            log.info("Client disconnected!!");
-        };
-    }
+//
+//    /**
+//     * Same logic for the node
+//     * Question for the node we implement List<Handlers> for each? Or is it done by the server separetley?
+//     * */
+//    @Bean
+//    public MessageProcessor messageProcessor() {
+//        return new MessageProcessor();
+//    }
 
-    @Bean
-    public Consumer<Connection> connectionStorageHandler() {
-        return connection -> {
-            Peer peer = new Peer();
-            peer.setActive(true);
-            peer.setPort(7331);
-            peer.setAddress(parseAddress(connection.address()));
-
-            storage.addPeer(peer);
-
-            log.info("New connection from:{}", peer);
-            this.connections.add(connection);
-
-            connection.onDispose(() -> {
-                peer.setActive(false);
-                peer.setLastTimeSeen(System.currentTimeMillis());
-
-                storage.addPeer(peer);
-
-                log.info("Node disconnected!");
-                connections.remove(connection);
-            });
-        };
-    }
-
-    /**
-     * Create bean to handle the server-client communications sending and receiving responses
-     * */
-    @Bean
-    public TransmissionHandler transmissionHandler() {
-        return new TransmissionHandler(messageProcessor());
-    }
-
-    /**
-     * Same logic for the node
-     * Question for the node we implement List<Handlers> for each? Or is it done by the server separetley?
-     * */
-    @Bean
-    public MessageProcessor messageProcessor() {
-        return new MessageProcessor();
-    }
-
-    @Bean
-    public MoveFund moveFundExecution() {
-        return new MoveBalanceExecutionService(storage);
-    }
-
-    private String parseAddress(SocketAddress address) {
-        InetSocketAddress inetSocketAddress = (InetSocketAddress) address;
-        String hostWithoutPort = inetSocketAddress.getAddress().getHostAddress();
-
-        return hostWithoutPort;
-    }
+//    @Bean
+//    public MoveFund moveFundExecution() {
+//        return new MoveBalanceExecutionService(storage);
+//    }
 }

@@ -8,8 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import uk.co.roteala.common.BaseModel;
-import uk.co.roteala.common.Fees;
+
 import uk.co.roteala.common.SignatureModel;
 import uk.co.roteala.common.TransactionStatus;
 import uk.co.roteala.common.monetary.Coin;
@@ -61,10 +60,10 @@ public class PseudoTransactionRequest {
     @JsonSerialize(converter = CoinConverter.class)
     private Coin value;
 
-    @NotNull(message = "The field is mandatory")
-    @Schema(description = "Transaction fees", type = "Fees", example = "{networkFees: '222', fees: '15'}", required = true)
-    @JsonSerialize(converter = CoinConverter.class)
-    private Fees fees;
+//    @NotNull(message = "The field is mandatory")
+//    @Schema(description = "Transaction fees", type = "Fees", example = "{networkFees: '222', fees: '15'}", required = true)
+//    @JsonSerialize(converter = CoinConverter.class)
+//    private Fees fees;
 
     @NotNull(message = "The field is mandatory")
     @Schema(description = "Transaction version", type = "Integer", example = "16", required = true)

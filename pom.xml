@@ -12,14 +12,15 @@
 
     <groupId>uk.co.roteala</groupId>
     <artifactId>blockchain-broker</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
     <name>blockchain-broker</name>
 
     <description>blockchain-broker</description>
 
     <properties>
         <java.version>11</java.version>
-        <glacier.core.version>2.0.0-SNAPSHOT</glacier.core.version>
+        <blockchain-commons.version>3.0.0-IMPROVED</blockchain-commons.version>
+        <netty-all.version>4.1.100.Final</netty-all.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.cloud.deployer.kubernetes.version>2.7.4</spring.cloud.deployer.kubernetes.version>
         <dockerRepository>dev-ent-jpoc1:5000/</dockerRepository>
@@ -30,7 +31,7 @@
         <dependency>
             <groupId>uk.co.roteala</groupId>
             <artifactId>blockchain-commons</artifactId>
-            <version>${glacier.core.version}</version>
+            <version>${blockchain-commons.version}</version>
         </dependency>
 
         <dependency>
@@ -46,7 +47,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.89.Final</version>
+            <version>${netty-all.version}</version>
         </dependency>
 
         <dependency>
@@ -70,6 +71,14 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.13.0</version>
+        </dependency>
+
+
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-annotations</artifactId>
@@ -80,13 +89,6 @@
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
             <version>2.0.2</version>
-        </dependency>
-
-
-        <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-core</artifactId>
-            <version>3.5.7</version>
         </dependency>
 
         <dependency>

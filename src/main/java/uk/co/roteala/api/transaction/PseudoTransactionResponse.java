@@ -9,10 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.co.roteala.api.ResultStatus;
-import uk.co.roteala.common.PseudoTransaction;
-import uk.co.roteala.common.TransactionStatus;
-import uk.co.roteala.common.monetary.Coin;
-import uk.co.roteala.common.monetary.CoinConverter;
+
 
 @Data
 @Builder
@@ -33,7 +30,7 @@ public class PseudoTransactionResponse {
 //    private long timeStamp;
 //    private String pubKeyHash;
 //    private TransactionStatus transactionStatus;
-    private PseudoTransaction pseudoTransaction;
+    //private PseudoTransaction pseudoTransaction;
     private String message;
     private ResultStatus result;
 }

@@ -13,11 +13,11 @@ import java.nio.file.Paths;
 @Setter
 @Configuration
 @ConfigurationProperties(prefix = "roteala.blockchain")
-public class GlacierBrokerConfigs {
+public class BrokerConfigs {
     //private static final String ROOT_WINDOWS = "/data/broker";
-    //private static final String ROOT_WINDOWS = System.getenv("APPDATA");
+    private static final String ROOT_WINDOWS = System.getenv("APPDATA");
 
-    private static final String ROOT_WINDOWS = System.getProperty("user.home");
+    //private static final String ROOT_WINDOWS = System.getProperty("user.home");
 
     private String rootWindows = ROOT_WINDOWS;
 

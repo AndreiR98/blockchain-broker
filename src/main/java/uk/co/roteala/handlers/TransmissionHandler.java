@@ -9,6 +9,7 @@ import org.apache.commons.lang3.SerializationUtils;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
@@ -19,16 +20,17 @@ import reactor.netty.ByteBufFlux;
 import reactor.netty.Connection;
 import reactor.netty.NettyInbound;
 import reactor.netty.NettyOutbound;
-import uk.co.roteala.common.*;
-import uk.co.roteala.common.events.Message;
-import uk.co.roteala.processor.MessageProcessor;
-import uk.co.roteala.processor.Processor;
-import uk.co.roteala.storage.StorageServices;
+import uk.co.roteala.common.messenger.MStream;
+import uk.co.roteala.common.messenger.Message;
+
+
 
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 /**
  * Handles the connection between the clients and server
@@ -37,14 +39,8 @@ import java.util.function.BiFunction;
 @Component
 @RequiredArgsConstructor
 public class TransmissionHandler implements BiFunction<NettyInbound, NettyOutbound, Publisher<Void>> {
-
-    private final MessageProcessor messageProcessor;
     @Override
     public Mono<Void> apply(NettyInbound inbound, NettyOutbound outbound) {
-
-
-        this.messageProcessor.forwardMessage(inbound, outbound);
-
         return outbound.neverComplete();
     }
 }
