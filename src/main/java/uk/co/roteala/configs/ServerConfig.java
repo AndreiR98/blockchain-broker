@@ -13,16 +13,22 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
+import reactor.netty.NettyInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 import reactor.netty.tcp.TcpServer;
+import uk.co.roteala.common.messenger.*;
 import uk.co.roteala.common.storage.ColumnFamilyTypes;
 import uk.co.roteala.common.storage.StorageTypes;
 import uk.co.roteala.core.Blockchain;
 import uk.co.roteala.exceptions.StorageException;
 import uk.co.roteala.exceptions.errorcodes.StorageErrorCode;
 
+import uk.co.roteala.messanging.AssemblerMessenger;
+import uk.co.roteala.messanging.ClientReaderSupplier;
+import uk.co.roteala.messanging.ExecutorMessenger;
 import uk.co.roteala.security.ECKey;
 import uk.co.roteala.storage.Storages;
+import uk.co.roteala.utils.Constants;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -50,7 +56,6 @@ import java.util.function.Consumer;
 public class ServerConfig {
     private final BrokerConfigs configs;
 
-    @Autowired
     private final Storages storage;
 
     private List<WebsocketOutbound> webSocketConnections = new ArrayList<>();
@@ -65,8 +70,13 @@ public class ServerConfig {
     public void genesisConfig() {
         try {
             if(!storage.getStorage(StorageTypes.STATE)
-                    .has(ColumnFamilyTypes.STATE, "state".getBytes(StandardCharsets.UTF_8))) {
+                    .has(ColumnFamilyTypes.STATE, Constants.DEFAULT_STATE_NAME.getBytes(StandardCharsets.UTF_8))) {
+                log.info("Creating new genesis state");
                 Blockchain.initializeGenesisState(storage.getStorage(StorageTypes.STATE));
+                Blockchain.initializeGenesisBlock(storage.getStorage(StorageTypes.BLOCKCHAIN));
+
+                storage.getStorage(StorageTypes.BLOCKCHAIN)
+                        .put(true, ColumnFamilyTypes.BLOCKS, "2".getBytes(), Constants.GENESIS_BLOCK);
             }
         } catch (Exception e) {
             log.error("Filed to initialize genesis state!", e);
@@ -103,29 +113,7 @@ public class ServerConfig {
 //    @Bean
 //    public Consumer<HttpServerRoutes> routerWebSocket() {
 //        return httpServerRoutes -> httpServerRoutes.ws("/stateChain", webSocketRouterStorage());
-//    }
-
-    @Bean
-    public void certificate() throws CertificateException, IOException {
-        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-        ClassPathResource resource = new ClassPathResource("certificate.pem");
-        InputStream certificateStream = resource.getInputStream();
-
-        try {
-            Collection<? extends Certificate> certificates = certificateFactory.generateCertificates(certificateStream);
-            Iterator<? extends Certificate> certificatesIterator = certificates.iterator();
-
-            while (certificatesIterator.hasNext()) {
-                X509Certificate certificate = (X509Certificate) certificatesIterator.next();
-                log.info("Certificate({}) loaded!", certificate.getIssuerDN().getName());
-            }
-        } finally {
-            if (certificateStream != null) {
-                certificateStream.close();
-            }
-        }
-    }
-
+//
     @Bean
     public List<WebsocketOutbound> webSocketConnections() {
         return this.webSocketConnections;
@@ -134,21 +122,5 @@ public class ServerConfig {
 //    @Bean
 //    public WebSocketRouterHandler webSocketRouterStorage() {
 //        return new WebSocketRouterHandler(storage);
-//    }
-
-
-//
-//    /**
-//     * Same logic for the node
-//     * Question for the node we implement List<Handlers> for each? Or is it done by the server separetley?
-//     * */
-//    @Bean
-//    public MessageProcessor messageProcessor() {
-//        return new MessageProcessor();
-//    }
-
-//    @Bean
-//    public MoveFund moveFundExecution() {
-//        return new MoveBalanceExecutionService(storage);
 //    }
 }
