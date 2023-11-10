@@ -1,29 +1,34 @@
 package uk.co.roteala.messanging;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 import uk.co.roteala.common.messenger.ClientMessage;
 import uk.co.roteala.common.messenger.Executor;
 import uk.co.roteala.common.messenger.ExecutorSupplier;
+import uk.co.roteala.common.messenger.Message;
 
-public class ExecutorMessenger implements ExecutorSupplier<ClientMessage> {
+@Slf4j
+@RequiredArgsConstructor
+public class ExecutorMessenger implements Subscriber<Message> {
     @Override
-    public Executor<ClientMessage> get() {
-        return new CustomExecutor();
+    public void onSubscribe(Subscription subscription) {
+
     }
 
-    private class CustomExecutor implements Executor<ClientMessage> {
-        @Override
-        public void init() {
+    @Override
+    public void onNext(Message message) {
 
-        }
+    }
 
-        @Override
-        public void process(ClientMessage message) {
+    @Override
+    public void onError(Throwable throwable) {
 
-        }
+    }
 
-        @Override
-        public void close() {
+    @Override
+    public void onComplete() {
 
-        }
     }
 }
