@@ -26,7 +26,7 @@ import java.util.function.BiFunction;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TransmissionHandler implements BiFunction<NettyInbound, NettyOutbound, Publisher<Void>>, AssemblerSupplier<Message> {
+public class TransmissionHandler implements BiFunction<NettyInbound, NettyOutbound, Publisher<Void>> {
 
     @Autowired
     private AssemblerMessenger assembler;
