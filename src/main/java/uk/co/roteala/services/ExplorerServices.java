@@ -1,6 +1,7 @@
 package uk.co.roteala.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,7 +9,13 @@ import org.apache.commons.lang3.SerializationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
+import org.web3j.crypto.RawTransaction;
+import org.web3j.crypto.TransactionDecoder;
+import org.web3j.protocol.core.methods.response.EthBlock;
+import org.web3j.utils.Numeric;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.Connection;
 import reactor.netty.http.websocket.WebsocketOutbound;
 import uk.co.roteala.api.ResultStatus;
 import uk.co.roteala.api.account.AccountRequest;
@@ -22,6 +29,7 @@ import uk.co.roteala.api.transaction.PseudoTransactionResponse;
 import uk.co.roteala.api.transaction.TransactionRequest;
 import uk.co.roteala.api.transaction.TransactionResponse;
 import uk.co.roteala.common.*;
+import uk.co.roteala.common.messenger.*;
 import uk.co.roteala.common.monetary.Coin;
 import uk.co.roteala.common.storage.ColumnFamilyTypes;
 import uk.co.roteala.common.storage.StorageTypes;
@@ -31,12 +39,15 @@ import uk.co.roteala.exceptions.TransactionException;
 import uk.co.roteala.exceptions.errorcodes.StorageErrorCode;
 import uk.co.roteala.exceptions.errorcodes.TransactionErrorCode;
 
+import uk.co.roteala.net.ConnectionsStorage;
 import uk.co.roteala.storage.Storages;
 import uk.co.roteala.utils.BlockchainUtils;
+import uk.co.roteala.utils.Constants;
 
 import javax.validation.Valid;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
 
 import static uk.co.roteala.security.utils.HashingService.bytesToHexString;
@@ -47,6 +58,7 @@ import static uk.co.roteala.security.utils.HashingService.bytesToHexString;
 @RequiredArgsConstructor
 public class ExplorerServices {
     private final Storages storages;
+    private final ConnectionsStorage connectionsStorage;
 
 //    public ExplorerResponse processExplorerRequest(@Valid ExplorerRequest explorerRequest){
 //        ExplorerResponse response = new ExplorerResponse();
@@ -139,6 +151,73 @@ public class ExplorerServices {
             return BlockResponse.builder()
                     .result(ResultStatus.ERROR)
                     .message(e.getMessage()).build();
+        }
+    }
+
+    public void testConnection() {
+        byte[] rawTransactionBytes = Numeric.hexStringToByteArray("0xf86d808402faf0808252089488fbf5bc3c9a07ff15b37cf525cc670c81c4ba78881bc16d674ec800008082396aa0b8a0a71d14caaa626f0a1d67c8f088c006e31ce8f71b284d2cc333bd357a1b03a007386766d26d907c98828b5917a04e418a7716b816c8c3de148e40f95f507692");
+
+        // Decode the transaction
+        RawTransaction transaction = TransactionDecoder
+                .decode("0xf86d808402faf0808252089488fbf5bc3c9a07ff15b37cf525cc670c81c4ba78881bc16d674ec800008082396aa0b8a0a71d14caaa626f0a1d67c8f088c006e31ce8f71b284d2cc333bd357a1b03a007386766d26d907c98828b5917a04e418a7716b816c8c3de148e40f95f507692");
+
+
+        log.info("Raw:{}", transaction.getTo());
+
+
+        Block genesisBlock = Constants.GENESIS_BLOCK;
+
+        List<String> transactions = new ArrayList<>();
+        transactions.add("0bb11c15a6f7c04a55a08c9ab68ab8f138efc38d68daad10e5da1216e97716bd");
+        transactions.add("955c4ad045500cd37e789efda711e3153f9e2190c33633d8d67c93ffe33b0a22");
+        transactions.add("29e67358bb1776e916869d5b0bce035fd51dc6048239daecaa206864fbeb9944");
+        transactions.add("04d08570756d7f1e014401893f76d9728431bcdc5424b04e4789f3638ee93c28");
+        transactions.add("29db5a27a4099ddaa18702f1596e614443e487b46a40cdbedc12b70455ae7738");
+        transactions.add("66c157147be2c184bae1a8b780c8309b5e89ede768da7d8dcd08c63d905f3794");
+        transactions.add("7916a7d22482d6174979b7eb4f696de29d28cea0a8ac5f1358fb1077868625ae");
+        transactions.add("f09251bceb81f9d345ce907c28a1aedbbe63455ad625e618f3cf78fe7170c3ca");
+        transactions.add("7a4d688b900271595fc3e27ad77aa3222d344dc2c48ca5d6738d5f9595ebc38a");
+        transactions.add("9dea22818b904c412b90ad299539d6ce3af5cb74d0c405d16d38c60fadc25b72");
+        transactions.add("eb5a24877f3fee260f7e2cbe0a4c3fcfd6ea1ff521a11ddd0b8fcadb5c94e0fa");
+        transactions.add("9536153612f0b303e9fe645c33fb0a3f54ceee50c1a410d0aa298d780bb740bc");
+        transactions.add("53f67fa417deebdd4f662035c1064cbceb14386d5467a9efa9e3bb50f849eeaa");
+        transactions.add("0bb11c15a6f7c04a55a08c9ab68ab8f138efc38d68daad10e5da1216e97716bd");
+        transactions.add("955c4ad045500cd37e789efda711e3153f9e2190c33633d8d67c93ffe33b0a22");
+        transactions.add("29e67358bb1776e916869d5b0bce035fd51dc6048239daecaa206864fbeb9944");
+        transactions.add("04d08570756d7f1e014401893f76d9728431bcdc5424b04e4789f3638ee93c28");
+        transactions.add("29db5a27a4099ddaa18702f1596e614443e487b46a40cdbedc12b70455ae7738");
+        transactions.add("66c157147be2c184bae1a8b780c8309b5e89ede768da7d8dcd08c63d905f3794");
+        transactions.add("7916a7d22482d6174979b7eb4f696de29d28cea0a8ac5f1358fb1077868625ae");
+        transactions.add("f09251bceb81f9d345ce907c28a1aedbbe63455ad625e618f3cf78fe7170c3ca");
+        transactions.add("7a4d688b900271595fc3e27ad77aa3222d344dc2c48ca5d6738d5f9595ebc38a");
+        transactions.add("9dea22818b904c412b90ad299539d6ce3af5cb74d0c405d16d38c60fadc25b72");
+        transactions.add("eb5a24877f3fee260f7e2cbe0a4c3fcfd6ea1ff521a11ddd0b8fcadb5c94e0fa");
+        transactions.add("9536153612f0b303e9fe645c33fb0a3f54ceee50c1a410d0aa298d780bb740bc");
+        transactions.add("53f67fa417deebdd4f662035c1064cbceb14386d5467a9efa9e3bb50f849eeaa");
+        transactions.add("0bb11c15a6f7c04a55a08c9ab68ab8f138efc38d68daad10e5da1216e97716bd");
+        transactions.add("955c4ad045500cd37e789efda711e3153f9e2190c33633d8d67c93ffe33b0a22");
+        transactions.add("29e67358bb1776e916869d5b0bce035fd51dc6048239daecaa206864fbeb9944");
+        transactions.add("04d08570756d7f1e014401893f76d9728431bcdc5424b04e4789f3638ee93c28");
+        transactions.add("29db5a27a4099ddaa18702f1596e614443e487b46a40cdbedc12b70455ae7738");
+        transactions.add("66c157147be2c184bae1a8b780c8309b5e89ede768da7d8dcd08c63d905f3794");
+        transactions.add("7916a7d22482d6174979b7eb4f696de29d28cea0a8ac5f1358fb1077868625ae");
+        transactions.add("f09251bceb81f9d345ce907c28a1aedbbe63455ad625e618f3cf78fe7170c3ca");
+        transactions.add("7a4d688b900271595fc3e27ad77aa3222d344dc2c48ca5d6738d5f9595ebc38a");
+        transactions.add("9dea22818b904c412b90ad299539d6ce3af5cb74d0c405d16d38c60fadc25b72");
+        transactions.add("eb5a24877f3fee260f7e2cbe0a4c3fcfd6ea1ff521a11ddd0b8fcadb5c94e0fa");
+        transactions.add("9536153612f0b303e9fe645c33fb0a3f54ceee50c1a410d0aa298d780bb740bc");
+        transactions.add("53f67fa417deebdd4f662035c1064cbceb14386d5467a9efa9e3bb50f849eeaa");
+
+        genesisBlock.setTransactions(transactions);
+
+        for(Connection connection : this.connectionsStorage.getServerConnections()) {
+            connection.outbound()
+                    .sendObject(Flux.fromIterable(MessengerUtils.createChunks(genesisBlock, EventTypes.BLOCK, EventActions.APPEND))
+                                    .delayElements(Duration.ofMillis(100))
+                            .doOnNext(byteBuf -> log.info("C:{}", byteBuf.readableBytes()))
+                            )
+                    .then()
+                    .subscribe();
         }
     }
 

@@ -20,9 +20,7 @@
     <properties>
         <java.version>11</java.version>
         <blockchain-commons.version>3.0.0-IMPROVED</blockchain-commons.version>
-        <netty-all.version>4.1.100.Final</netty-all.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring.cloud.deployer.kubernetes.version>2.7.4</spring.cloud.deployer.kubernetes.version>
         <dockerRepository>dev-ent-jpoc1:5000/</dockerRepository>
         <image>${dockerRepository}${project.artifactId}:${project.version}</image>
     </properties>
@@ -34,20 +32,15 @@
             <version>${blockchain-commons.version}</version>
         </dependency>
 
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-reactor-netty</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>${netty-all.version}</version>
         </dependency>
 
         <dependency>
@@ -78,7 +71,6 @@
             <version>2.13.0</version>
         </dependency>
 
-
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-annotations</artifactId>
@@ -92,6 +84,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.web3j</groupId>
+            <artifactId>core</artifactId>
+            <version>5.0.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
@@ -102,12 +100,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-deployer-kubernetes</artifactId>
-            <version>${spring.cloud.deployer.kubernetes.version}</version>
         </dependency>
 
         <dependency>
@@ -133,10 +125,6 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
     </dependencies>
 

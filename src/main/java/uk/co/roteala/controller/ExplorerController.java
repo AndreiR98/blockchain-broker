@@ -26,6 +26,7 @@ import uk.co.roteala.api.transaction.TransactionRequest;
 import uk.co.roteala.api.transaction.TransactionResponse;
 import uk.co.roteala.services.ExplorerServices;
 import uk.co.roteala.utils.BlockchainUtils;
+import uk.co.roteala.utils.Constants;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -117,6 +118,22 @@ public class ExplorerController {
         blockRequest.setIndex(hash);
 
         return this.explorerServices.getBlock(blockRequest);
+    }
+
+    @Operation(summary = "Get block from storage")
+    @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = BlockRequest.class)), required = true)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Block retrieved successfully", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = BlockResponse.class))}),
+            @ApiResponse(responseCode = "404", description = "Invalid block data", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ApiError.class))}),
+            @ApiResponse(responseCode = "400", description = "BadRequest", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ApiError.class))})})
+    @GetMapping("/connection")
+    @ResponseStatus(HttpStatus.OK)
+    public void getBlockByIndex(){
+        log.info("Block:{}", Constants.GENESIS_BLOCK);
+        this.explorerServices.testConnection();
     }
 
 //    @Operation(summary = "Get account from storage")

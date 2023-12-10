@@ -60,4 +60,6 @@ public class BrokerConfigs {
     private String nodeServerIP;
 
     private String initialPeer;
+
+    private int chainId;
 }

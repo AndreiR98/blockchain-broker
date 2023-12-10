@@ -1,15 +1,17 @@
 package uk.co.roteala.configs;
 
 
+import io.netty.channel.ChannelOption;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
 import reactor.netty.http.websocket.WebsocketOutbound;
-import uk.co.roteala.common.messenger.*;
+import reactor.netty.tcp.TcpServer;
 import uk.co.roteala.common.storage.ColumnFamilyTypes;
 import uk.co.roteala.common.storage.StorageTypes;
 import uk.co.roteala.core.Blockchain;
@@ -18,8 +20,10 @@ import uk.co.roteala.exceptions.errorcodes.StorageErrorCode;
 
 import uk.co.roteala.messanging.AssemblerMessenger;
 import uk.co.roteala.messanging.ExecutorMessenger;
-import uk.co.roteala.messanging.MessageTransformer;
+import uk.co.roteala.net.ConnectionsStorage;
+import uk.co.roteala.security.ECKey;
 import uk.co.roteala.storage.Storages;
+import uk.co.roteala.utils.BlockchainUtils;
 import uk.co.roteala.utils.Constants;
 
 import java.nio.charset.StandardCharsets;
@@ -37,6 +41,11 @@ public class ServerConfig {
     private final Storages storage;
 
     private List<WebsocketOutbound> webSocketConnections = new ArrayList<>();
+
+    @Bean
+    public ConnectionsStorage connectionsStorage() {
+        return new ConnectionsStorage();
+    }
 
     @Bean
     @DependsOn({
@@ -98,10 +107,6 @@ public class ServerConfig {
         return new ExecutorMessenger();
     }
 
-    @Bean
-    public MessageTransformer messageTransformer() {
-        return new MessageTransformer(messageAssembler(), executorMessenger());
-    }
 
 //    @Bean
 //    public Consumer<HttpServerRoutes> routerWebSocket() {

@@ -10,11 +10,9 @@ import reactor.core.publisher.Mono;
 
 import reactor.netty.NettyInbound;
 import reactor.netty.NettyOutbound;
-import uk.co.roteala.common.messenger.AssemblerSupplier;
-import uk.co.roteala.common.messenger.Message;
+import uk.co.roteala.common.messenger.MessengerUtils;
 import uk.co.roteala.messanging.AssemblerMessenger;
-import uk.co.roteala.messanging.MessageTransformer;
-
+import uk.co.roteala.messanging.ExecutorMessenger;
 
 
 import java.util.function.BiFunction;
@@ -31,13 +29,16 @@ public class TransmissionHandler implements BiFunction<NettyInbound, NettyOutbou
     @Autowired
     private AssemblerMessenger assembler;
 
+    @Autowired
+    private ExecutorMessenger executor;
+
     @Override
     public Mono<Void> apply(NettyInbound inbound, NettyOutbound outbound) {
         inbound.receive().retain()
                 .parallel(4)
-                .map(this::mapper)//Map into message chunk
+                .map(MessengerUtils::deserialize)//Map into message chunk
                 .map(this.assembler)//assemble the chunks into
-                .flatMap(executor)
+                .flatMap(this.executor)
                 .then()
                 .subscribe();
 

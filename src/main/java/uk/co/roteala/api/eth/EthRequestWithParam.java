@@ -4,10 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 
 import java.util.List;
-@EqualsAndHashCode(callSuper = true)
-public class EthRequest extends AbstractEthRequest<String> {
+
+
+public class EthRequestWithParam extends AbstractEthRequest<Params> {
     @Override
-    public void setParams(List<String> params) {
+    public void setParams(List<Params> params) {
         super.setParams(params);
     }
 }
