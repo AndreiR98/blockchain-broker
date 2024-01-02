@@ -34,8 +34,6 @@ public class ETHController {
                     .readValue(jsonString, AbstractEthRequest.class);
 
             EthResponse response =rpcServices.processRequest(requestWrapper);
-
-            log.info("Response:{}", jsonString);
             return response;
         } catch (JsonProcessingException e) {
             log.info("Error:{}", e);

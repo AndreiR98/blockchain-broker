@@ -1,32 +1,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: glacier-broker
+  name: blockchain-broker
   labels:
-    app: glacier-broker
+    app: blockchain-broker
 spec:
   replicas: 1
   template:
     metadata:
-      name: glacier-broker
+      name: blockchain-broker
       labels:
-        app: glacier-broker
+        app: blockchain-broker
     spec:
       containers:
-        - name: glacier-broker
-          image: glacier-broker
+        - name: blockchain-broker
+          image: blockchain-broker
           imagePullPolicy: IfNotPresent
           env:
             - name: KUBERNETES_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: "metadata.namespace"
-            - name: POD_NAME
+            - name: POD_IP
               valueFrom:
                 fieldRef:
-                  fieldPath: "metadata.name"
+                  fieldPath: "status.podIP"
           volumeMounts:
-            - mountPath: /data/broker
+            - mountPath: /root/roteala
               name: broker-storage
       volumes:
         - name: broker-storage
@@ -35,4 +35,4 @@ spec:
       restartPolicy: Always
   selector:
     matchLabels:
-      app: glacier-broker
+      app: blockchain-broker

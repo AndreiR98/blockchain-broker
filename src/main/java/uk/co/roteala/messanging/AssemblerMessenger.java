@@ -2,53 +2,43 @@ package uk.co.roteala.messanging;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.netty.buffer.ByteBuf;
-import org.reactivestreams.Publisher;
-import org.springframework.boot.autoconfigure.cache.CacheProperties;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import uk.co.roteala.common.BasicModel;
-import uk.co.roteala.common.events.MessageTemplate;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import uk.co.roteala.common.messenger.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Optional;
 import java.util.function.Function;
 
-
-public class AssemblerMessenger implements Function<Message, MessageTemplate> {
-    private final Cache<String, MessageContainer> cache = Caffeine.newBuilder()
-            .maximumSize(500)
-            .build();
+@Slf4j
+public class AssemblerMessenger implements Function<Message, Optional<MessageTemplate>> {
+    @Autowired
+    private Cache<String, MessageContainer> cache;
 
     @Override
-    public MessageTemplate apply(Message message) {
+    public Optional<MessageTemplate> apply(Message message) {
         try {
             MessageContainer container = cache.get(message.getMessageId(), k -> new MessageContainer());
 
-            if (message.getMessageType() == MessageType.EMPTY) {
-                return null;
+            switch (message.getMessageType()) {
+                case EMPTY:
+                    cache.invalidate(message.getMessageId());
+                    return Optional.empty();
+                case KEY:
+                    container.setKey((MessageKey) message);
+                    break;
+                case CHUNK:
+                    container.addChunk((MessageChunk) message);
+                    break;
             }
 
             if (container.canAggregate()) {
-                return container.aggregate();
-            }
-
-            if (message.getMessageType() == MessageType.KEY) {
-                container.setKey((MessageKey) message);
-            }
-
-            if (message.getMessageType() == MessageType.CHUNK) {
-                container.addChunk((MessageChunk) message);
+                cache.invalidate(message.getMessageId());
+                return Optional.of(container.aggregate());
             }
         } catch (Exception e) {
-            // Handle the exception appropriately, logging or rethrowing if necessary
-            e.printStackTrace();
+            log.error("Error in message assembly: {}", e.getMessage(), e);
         }
 
-        return null;
+        return Optional.empty();
     }
 }

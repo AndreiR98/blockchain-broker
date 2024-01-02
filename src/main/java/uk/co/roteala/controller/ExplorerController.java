@@ -18,6 +18,7 @@ import uk.co.roteala.api.block.BlockRequest;
 import uk.co.roteala.api.block.BlockResponse;
 import uk.co.roteala.api.explorer.ExplorerRequest;
 import uk.co.roteala.api.explorer.ExplorerResponse;
+import uk.co.roteala.api.mempool.LatestMempoolResponse;
 import uk.co.roteala.api.mempool.MempoolBlocksRequest;
 import uk.co.roteala.api.mempool.MempoolBlocksResponse;
 import uk.co.roteala.api.transaction.PseudoTransactionRequest;
@@ -118,6 +119,21 @@ public class ExplorerController {
         blockRequest.setIndex(hash);
 
         return this.explorerServices.getBlock(blockRequest);
+    }
+
+    @Operation(summary = "Get latest mempools transactions")
+    @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = BlockRequest.class)), required = true)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Block retrieved successfully", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = BlockResponse.class))}),
+            @ApiResponse(responseCode = "404", description = "Invalid block data", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ApiError.class))}),
+            @ApiResponse(responseCode = "400", description = "BadRequest", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ApiError.class))})})
+    @GetMapping("/mempool/{page}")
+    @ResponseStatus(HttpStatus.OK)
+    public LatestMempoolResponse getLatestMempoolVyPage(@Valid @PathVariable String page){
+        return this.explorerServices.getLatestMempool(page);
     }
 
     @Operation(summary = "Get block from storage")

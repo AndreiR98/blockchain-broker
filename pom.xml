@@ -12,17 +12,17 @@
 
     <groupId>uk.co.roteala</groupId>
     <artifactId>blockchain-broker</artifactId>
-    <version>3.0.0-SNAPSHOT</version>
+    <version>3.1.0-SNAPSHOT</version>
     <name>blockchain-broker</name>
 
     <description>blockchain-broker</description>
 
     <properties>
         <java.version>11</java.version>
-        <blockchain-commons.version>3.0.0-IMPROVED</blockchain-commons.version>
+        <blockchain-commons.version>3.1.0-SNAPSHOT</blockchain-commons.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dockerRepository>dev-ent-jpoc1:5000/</dockerRepository>
-        <image>${dockerRepository}${project.artifactId}:${project.version}</image>
+        <dockerRepository>localhost:5000/</dockerRepository>
+        <image>${project.artifactId}:${project.version}</image>
     </properties>
 
     <dependencies>
@@ -84,12 +84,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.web3j</groupId>
-            <artifactId>core</artifactId>
-            <version>5.0.0</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
@@ -148,10 +142,24 @@
                 <version>3.2.0</version>
                 <configuration>
                     <from>
-                        <image>adoptopenjdk/openjdk11:alpine-jre</image>
+                        <image>openjdk:11-jre-slim</image>
+                        <platforms>
+                            <platform>
+                                <architecture>amd64</architecture>
+                                <os>linux</os>
+                            </platform>
+                            <platform>
+                                <architecture>arm64</architecture>
+                                <os>linux</os>
+                            </platform>
+                        </platforms>
                     </from>
+                    <to>
+                        <image>${dockerRepository}/${project.artifactId}:${project.version}</image>
+                    </to>
                 </configuration>
             </plugin>
+
 
         </plugins>
         <pluginManagement>
@@ -198,12 +206,25 @@
                     <artifactId>jib-maven-plugin</artifactId>
                     <version>3.2.0</version>
                     <configuration>
-                        <allowInsecureRegistries>true</allowInsecureRegistries>
-                        <container>
-                            <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
-                        </container>
+                        <from>
+                            <image>openjdk:11-jre-slim</image>
+                            <platforms>
+                                <platform>
+                                    <architecture>amd64</architecture>
+                                    <os>linux</os>
+                                </platform>
+                                <platform>
+                                    <architecture>arm64</architecture>
+                                    <os>linux</os>
+                                </platform>
+                            </platforms>
+                        </from>
+                        <to>
+                            <image>${dockerRepository}/${project.artifactId}:${project.version}</image>
+                        </to>
                     </configuration>
                 </plugin>
+
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>

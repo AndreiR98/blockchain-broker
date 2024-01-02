@@ -22,6 +22,8 @@ import java.util.List;
         @JsonSubTypes.Type(value = EthRequest.class, name = "eth_blockNumber"),
         @JsonSubTypes.Type(value = EthRequest.class, name = "eth_gasPrice"),
         @JsonSubTypes.Type(value = EthRequest.class, name = "eth_getTransactionCount"),
+        @JsonSubTypes.Type(value = EthRequest.class, name = "eth_sendRawTransaction"),
+        @JsonSubTypes.Type(value = EthRequest.class, name = "send_transaction"),
         @JsonSubTypes.Type(value = EthRequestWithMultiTypeParams.class, name = "eth_getBlockByNumber"),
         @JsonSubTypes.Type(value = EthRequestWithParam.class, name = "eth_estimateGas")
 })

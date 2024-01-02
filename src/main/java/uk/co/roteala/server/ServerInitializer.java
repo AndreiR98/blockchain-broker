@@ -1,74 +1,109 @@
 package uk.co.roteala.server;
 
-import io.netty.channel.ChannelOption;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.net.NetServer;
+import io.vertx.core.net.NetServerOptions;
+import io.vertx.core.net.NetSocket;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationListener;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
-import reactor.netty.Connection;
-import reactor.netty.tcp.TcpServer;
-import uk.co.roteala.common.storage.StorageTypes;
+import uk.co.roteala.configs.BrokerConfigs;
+import uk.co.roteala.handlers.TransmissionHandler;
 import uk.co.roteala.net.ConnectionsStorage;
 import uk.co.roteala.net.Peer;
 import uk.co.roteala.storage.Storages;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.function.Consumer;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ServerInitializer implements ApplicationListener<ContextRefreshedEvent> {
+public class ServerInitializer extends AbstractVerticle {
 
     @Autowired
     private final Storages storage;
 
+    @Autowired
+    private final BrokerConfigs configs;
+
+    @Autowired
+    private final TransmissionHandler transmissionHandler;
+
     private final ConnectionsStorage connectionStorage;
+
     @Override
-    public void onApplicationEvent(ContextRefreshedEvent event) {
-        new Thread(() -> TcpServer.create()
-                .doOnConnection(connectionStorageHandler())
-                .option(ChannelOption.SO_KEEPALIVE, true)
-                .port(7331)
-                .doOnBound(server -> log.info("Server started on address:{} and port:{}", server.address(), server.port()))
-                .doOnUnbound(server -> log.info("Server stopped!"))
-                .bindNow()
-                .onDispose()
-                .doOnError(e -> log.error("Error occurred with the TCP server", e)))
-                .start();
+    public void start(Promise<Void> startPromise) {
+        NetServerOptions options = new NetServerOptions();
+        options.setPort(7331);
+        options.setHost(configs.getNodeServerIP());
+
+        NetServer server = vertx.createNetServer(options);
+
+        server.connectHandler(new SocketConnectionHandler());
+
+        server.listen(result -> {
+            if(result.succeeded()) {
+                log.info("Broker server listening on port: {}", server.actualPort());
+                startPromise.complete();
+            }
+        });
     }
-    private Consumer<Connection> connectionStorageHandler() {
-        return connection -> {
+
+    private class SocketConnectionHandler implements Handler<NetSocket> {
+        @Override
+        public void handle(NetSocket event) {
             Peer peer = new Peer();
             peer.setActive(true);
             peer.setPort(7331);
-            peer.setAddress(parseAddress(connection.address()));
+            peer.setAddress(event.remoteAddress().hostAddress());
 
-            this.storage.getStorage(StorageTypes.PEERS)
-                    .put(true, peer.getKey(), peer);
+            event.handler(transmissionHandler);
 
-            log.info("New connection from:{}", peer.getAddress());
-            log.info("Connection:{}", connection);
-            this.connectionStorage.getServerConnections()
-                                    .add(connection);
+            log.info("New peer from:{}", peer);
+            connectionStorage.getClientConnections()
+                    .add(event);
 
-            connection.onDispose(() -> {
-                peer.setActive(false);
-                peer.setLastTimeSeen(System.currentTimeMillis());
+            event.closeHandler(close -> {
+                log.info("Node: {} disconnected!", event.remoteAddress().hostAddress());
 
-                this.storage.getStorage(StorageTypes.PEERS)
-                        .put(true, peer.getKey(), peer);
-
-                log.info("Node disconnected!");
-                this.connectionStorage.getServerConnections()
-                        .remove(connection);
+                connectionStorage.getClientConnections()
+                        .remove(event);
             });
-        };
+        }
     }
+
+//    private Consumer<Connection> connectionStorageHandler() {
+//        return connection -> {
+//            Peer peer = new Peer();
+//            peer.setActive(true);
+//            peer.setPort(7331);
+//            peer.setAddress(parseAddress(connection.address()));
+//
+//            this.storage.getStorage(StorageTypes.PEERS)
+//                    .put(true, peer.getKey(), peer);
+//
+//            log.info("New connection from:{}", peer.getAddress());
+//            log.info("Connection:{}", connection);
+//            this.connectionStorage.getServerConnections()
+//                                    .add(connection);
+//
+//            connection.onDispose(() -> {
+//                peer.setActive(false);
+//                peer.setLastTimeSeen(System.currentTimeMillis());
+//
+//                this.storage.getStorage(StorageTypes.PEERS)
+//                        .put(true, peer.getKey(), peer);
+//
+//                log.info("Node disconnected!");
+//                this.connectionStorage.getServerConnections()
+//                        .remove(connection);
+//            });
+//        };
+//    }
 
     private String parseAddress(SocketAddress address) {
         InetSocketAddress inetSocketAddress = (InetSocketAddress) address;

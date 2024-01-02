@@ -4,7 +4,7 @@ build:
   tagPolicy:
     sha256: {}
   artifacts:
-    - image: glacier-broker
+    - image: blockchain-broker
       context: .
       jib:
         args: ["-DskipTests=true"]
@@ -17,4 +17,4 @@ profiles:
   - name: dockerfile
     build:
       artifacts:
-        - image: glacier-broker
+        - image: blockchain-broker

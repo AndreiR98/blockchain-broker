@@ -1,17 +1,28 @@
 package uk.co.roteala.configs;
 
 
-import io.netty.channel.ChannelOption;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
+import io.vertx.core.Vertx;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.netty.Connection;
 import reactor.netty.http.websocket.WebsocketOutbound;
 import reactor.netty.tcp.TcpServer;
+import uk.co.roteala.common.MempoolTransaction;
+import uk.co.roteala.common.messenger.Message;
+import uk.co.roteala.common.messenger.MessageContainer;
+import uk.co.roteala.common.messenger.MessageTemplate;
+import uk.co.roteala.common.messenger.Messenger;
 import uk.co.roteala.common.storage.ColumnFamilyTypes;
 import uk.co.roteala.common.storage.StorageTypes;
 import uk.co.roteala.core.Blockchain;
@@ -21,7 +32,10 @@ import uk.co.roteala.exceptions.errorcodes.StorageErrorCode;
 import uk.co.roteala.messanging.AssemblerMessenger;
 import uk.co.roteala.messanging.ExecutorMessenger;
 import uk.co.roteala.net.ConnectionsStorage;
+import uk.co.roteala.processor.MessageProcessor;
+import uk.co.roteala.processor.TransactionProcessor;
 import uk.co.roteala.security.ECKey;
+import uk.co.roteala.server.ServerInitializer;
 import uk.co.roteala.storage.Storages;
 import uk.co.roteala.utils.BlockchainUtils;
 import uk.co.roteala.utils.Constants;
@@ -33,7 +47,6 @@ import java.util.function.Consumer;
 
 @Slf4j
 @Configuration
-@EnableScheduling
 @RequiredArgsConstructor
 public class ServerConfig {
     private final BrokerConfigs configs;
@@ -61,14 +74,71 @@ public class ServerConfig {
                 log.info("Creating new genesis state");
                 Blockchain.initializeGenesisState(storage.getStorage(StorageTypes.STATE));
                 Blockchain.initializeGenesisBlock(storage.getStorage(StorageTypes.BLOCKCHAIN));
-
-                storage.getStorage(StorageTypes.BLOCKCHAIN)
-                        .put(true, ColumnFamilyTypes.BLOCKS, "2".getBytes(), Constants.GENESIS_BLOCK);
             }
         } catch (Exception e) {
             log.error("Filed to initialize genesis state!", e);
             throw new StorageException(StorageErrorCode.STORAGE_FAILED);
         }
+    }
+
+    @Bean
+    public Cache<String, MessageContainer> cache() {
+        return Caffeine.newBuilder()
+                .build();
+    }
+    @Bean
+    public Vertx vertx() {
+        return Vertx.vertx();
+    }
+
+    @Bean
+    public Sinks.Many<Message> incomingRawMessagesSink() {
+        return Sinks.many().multicast()
+                .onBackpressureBuffer();
+    }
+
+    @Bean
+    public Flux<Message> incomingRawMessagesAssembledFlux(Sinks.Many<Message> incomingRawMessagesSink) {
+        return incomingRawMessagesSink.asFlux();
+    }
+
+    @Bean
+    public Sinks.Many<MessageTemplate> outgoingMessageTemplateSink() {
+        return Sinks.many().multicast()
+                .onBackpressureBuffer();
+    }
+
+    @Bean
+    public Flux<MessageTemplate> outgoingMessageTemplateFlux(Sinks.Many<MessageTemplate> outgoingMessageTemplateSink) {
+        return outgoingMessageTemplateSink.asFlux();
+    }
+
+    @Bean
+    public Sinks.Many<MempoolTransaction> mempoolSink() {
+        return Sinks.many().multicast()
+                .onBackpressureBuffer();
+    }
+
+    @Bean
+    public Flux<MempoolTransaction> mempoolFlux(Sinks.Many<MempoolTransaction> sink) {
+        return sink.asFlux();
+    }
+
+    @Bean
+    public Messenger messenger(Flux<MessageTemplate> outgoingMessageTemplateFlux, ConnectionsStorage connectionsStorage) {
+        Messenger messenger = new Messenger(connectionsStorage);
+        messenger.accept(outgoingMessageTemplateFlux);
+
+        return messenger;
+    }
+
+    @Bean
+    public TransactionProcessor transactionProcessor(Messenger messenger, Flux<MempoolTransaction> mempoolFlux,
+                                                     Sinks.Many<MessageTemplate> outgoingMessageTemplateSink) {
+        TransactionProcessor processor = new TransactionProcessor(storage, outgoingMessageTemplateSink);
+        processor.accept(mempoolFlux);
+
+        return processor;
     }
 
     //@Bean
@@ -103,8 +173,8 @@ public class ServerConfig {
     }
 
     @Bean
-    public ExecutorMessenger executorMessenger() {
-        return new ExecutorMessenger();
+    public MessageProcessor messageProcessor() {
+        return new MessageProcessor();
     }
 
 
