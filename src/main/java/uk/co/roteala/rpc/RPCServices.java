@@ -14,6 +14,8 @@ import uk.co.roteala.common.Account;
 import uk.co.roteala.common.ChainState;
 import uk.co.roteala.common.MempoolTransaction;
 import uk.co.roteala.common.storage.ColumnFamilyTypes;
+import uk.co.roteala.common.storage.Operator;
+import uk.co.roteala.common.storage.SearchField;
 import uk.co.roteala.common.storage.StorageTypes;
 import uk.co.roteala.configs.BrokerConfigs;
 import uk.co.roteala.core.Blockchain;
@@ -29,6 +31,7 @@ import uk.co.roteala.utils.Constants;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -39,6 +42,7 @@ public class RPCServices {
     private final Storages storages;
     private final Sinks.Many<MempoolTransaction> mempoolSink;
     public EthResponse processRequest(AbstractEthRequest abstractEthRequest) {
+        System.out.println(abstractEthRequest.getMethod());
         switch (abstractEthRequest.getMethod()) {
             case "eth_chainId":
                 return new EthResponse(abstractEthRequest.getId(), abstractEthRequest.getJsonrpc(),
@@ -80,13 +84,16 @@ public class RPCServices {
                 throw new RPCException(RPCErrorCode.MALFORMED_PAYLOAD);
             }
 
-            final String accountAddress = accountAddressOptional.get();
+            final String accountAddress = accountAddressOptional.get().toLowerCase();
 
             Account account = Optional.ofNullable((Account) storages.getStorage(StorageTypes.STATE)
                             .get(ColumnFamilyTypes.ACCOUNTS, accountAddress.getBytes(StandardCharsets.UTF_8)))
                     .orElseGet(() -> Account.empty(accountAddress));
 
-            response.setResult(account.getBalance());
+            final String accountBalance = "0x"+(account.getBalance().add(account.getVirtualBalance())
+                    .toString(16));
+
+            response.setResult(accountBalance);
         } catch (Exception e) {
             log.info("Error:{}", e);
             response.setResult("ERROR!");
@@ -126,7 +133,9 @@ public class RPCServices {
 //                                    .getBytes(StandardCharsets.UTF_8)))
 //                    .getNetworkFees().toString(16);
 
-            final String gasPrice = "0x2FAF080";
+            final String gasPrice = "0x"+((ChainState) storages.getStorage(StorageTypes.STATE)
+                    .get(ColumnFamilyTypes.STATE, Constants.DEFAULT_STATE_NAME.getBytes(StandardCharsets.UTF_8)))
+                    .getNetworkFees().toString(16);
             response.setResult(gasPrice);
         } catch (Exception e) {
             response.setResult("ERROR!");
@@ -172,7 +181,9 @@ public class RPCServices {
                             .get(ColumnFamilyTypes.ACCOUNTS, accountAddress.getBytes(StandardCharsets.UTF_8)))
                     .orElseGet(() -> Account.empty(accountAddress));
 
-            response.setResult(account.getNonce());
+            final String accountNonce = "0x"+account.getNonce().toString(16);
+
+            response.setResult(accountNonce);
         } catch (Exception e) {
             response.setResult("ERROR!");
         }
@@ -234,6 +245,7 @@ public class RPCServices {
                     log.info("Added to the sink!");
                 }
             }
+            response.setResult(mempoolTransaction.getHash());
         } catch (Exception e) {
             log.info("Error:{}", e);
             response.setResult("ERROR!");

@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import uk.co.roteala.common.storage.StorageTypes;
 import uk.co.roteala.configs.BrokerConfigs;
 import uk.co.roteala.handlers.TransmissionHandler;
 import uk.co.roteala.net.ConnectionsStorage;
@@ -61,13 +62,24 @@ public class ServerInitializer extends AbstractVerticle {
             peer.setPort(7331);
             peer.setAddress(event.remoteAddress().hostAddress());
 
-            event.handler(transmissionHandler);
+            storage.getStorage(StorageTypes.PEERS)
+                            .put(true, peer.getKey(), peer);
+
+            event.handler(transmissionHandler
+                    .processWithConnection(event)
+            );
 
             log.info("New peer from:{}", peer);
             connectionStorage.getClientConnections()
                     .add(event);
 
             event.closeHandler(close -> {
+                peer.setActive(false);
+                peer.setLastTimeSeen(System.currentTimeMillis());
+
+                storage.getStorage(StorageTypes.PEERS)
+                                .put(true, peer.getKey(), peer);
+
                 log.info("Node: {} disconnected!", event.remoteAddress().hostAddress());
 
                 connectionStorage.getClientConnections()
