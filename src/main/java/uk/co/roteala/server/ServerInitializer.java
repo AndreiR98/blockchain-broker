@@ -91,14 +91,13 @@ public class ServerInitializer extends AbstractVerticle {
     private class WebSocketHandler implements Handler<ServerWebSocket> {
         @Override
         public void handle(ServerWebSocket event) {
-            event.write();
+            //event.write();
         }
     }
 
     private class HttpWebSocketHandler implements Handler<HttpConnection> {
         @Override
         public void handle(HttpConnection event) {
-            event.
         }
     }
 
