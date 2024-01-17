@@ -240,10 +240,7 @@ public class RPCServices {
 
             if(mempoolTransaction.verifyTransaction()) {
                 response.setResult(mempoolTransaction.getHash());
-                Sinks.EmitResult result = mempoolSink.tryEmitNext(mempoolTransaction);
-                if(result.isSuccess()) {
-                    log.info("Added to the sink!");
-                }
+                mempoolSink.tryEmitNext(mempoolTransaction);
             }
             response.setResult(mempoolTransaction.getHash());
         } catch (Exception e) {

@@ -12,14 +12,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.netty.Connection;
+import reactor.netty.DisposableServer;
+import reactor.netty.http.server.HttpServer;
 import reactor.netty.http.websocket.WebsocketOutbound;
 import uk.co.roteala.common.MempoolTransaction;
 import uk.co.roteala.common.messenger.Message;
 import uk.co.roteala.common.messenger.MessageContainer;
 import uk.co.roteala.common.messenger.MessageTemplate;
 import uk.co.roteala.common.messenger.Messenger;
+import uk.co.roteala.common.monetary.Funding;
 import uk.co.roteala.common.monetary.FundingServices;
 import uk.co.roteala.common.storage.ColumnFamilyTypes;
 import uk.co.roteala.common.storage.StorageTypes;
@@ -27,9 +31,10 @@ import uk.co.roteala.core.Blockchain;
 import uk.co.roteala.exceptions.StorageException;
 import uk.co.roteala.exceptions.errorcodes.StorageErrorCode;
 
+import uk.co.roteala.handlers.WebSocketRouterHandler;
 import uk.co.roteala.messanging.AssemblerMessenger;
 import uk.co.roteala.net.ConnectionsStorage;
-import uk.co.roteala.processor.MessageProcessor;
+import uk.co.roteala.server.MessageProcessor;
 import uk.co.roteala.processor.TransactionProcessor;
 import uk.co.roteala.storage.Storages;
 import uk.co.roteala.utils.Constants;
@@ -131,38 +136,31 @@ public class ServerConfig {
     }
 
     @Bean
+    public Sinks.Many<Funding> fundingSink() {
+        return Sinks.many().multicast()
+                .onBackpressureBuffer();
+    }
+
+    @Bean
+    public Flux<Funding> fundingFlux(Sinks.Many<Funding> sink) {
+        return sink.asFlux();
+    }
+
+    @Bean
+    public FundingServices fundingServices(Flux<Funding> fundingFlux) {
+        FundingServices fundingServices = new FundingServices(storage.getStorage(StorageTypes.STATE));
+        fundingServices.accept(fundingFlux);
+
+        return fundingServices;
+    }
+
+    @Bean
     public TransactionProcessor transactionProcessor(Flux<MempoolTransaction> mempoolFlux,
                                                      Sinks.Many<MessageTemplate> outgoingMessageTemplateSink) {
         TransactionProcessor processor = new TransactionProcessor(storage, outgoingMessageTemplateSink);
         processor.accept(mempoolFlux);
 
         return processor;
-    }
-
-    //@Bean
-//    public Mono<Void> startWebsocket() {
-//        return HttpServer.create()
-//                .port(1337)
-//                .route(routerWebSocket())
-//                .doOnBind(server -> log.info("Websocket server started!"))
-//                //.doOnConnection(webSocketConnectionHandler())
-//                .bindNow()
-//                .onDispose();
-//    }
-
-   // @Bean
-    public Consumer<Connection> webSocketConnectionHandler() {
-        return connection -> {
-
-            log.info("New explorer connected from:{}", connection);
-
-            this.webSocketConnections.add((WebsocketOutbound) connection.outbound());
-
-            connection.onDispose(() -> {
-                log.info("Node disconnected!");
-                this.webSocketConnections.remove((WebsocketOutbound) connection);
-            });
-        };
     }
 
     @Bean
@@ -180,22 +178,16 @@ public class ServerConfig {
     }
 
     @Bean
-    public FundingServices fundingServices() {
-        return new FundingServices(storage.getStorage(StorageTypes.STATE));
+    public DisposableServer startWebSocketServer(WebSocketRouterHandler webSocketRouterHandler) {
+        return HttpServer.create()
+                .port(1337)
+                .handle()
+                .route(webSocketRouterHandler)
+                .bindNow();
     }
 
-
-//    @Bean
-//    public Consumer<HttpServerRoutes> routerWebSocket() {
-//        return httpServerRoutes -> httpServerRoutes.ws("/stateChain", webSocketRouterStorage());
-//
     @Bean
-    public List<WebsocketOutbound> webSocketConnections() {
-        return this.webSocketConnections;
+    public WebSocketRouterHandler webSocketRouterHandler() {
+        return new WebSocketRouterHandler();
     }
-
-//    @Bean
-//    public WebSocketRouterHandler webSocketRouterStorage() {
-//        return new WebSocketRouterHandler(storage);
-//    }
 }

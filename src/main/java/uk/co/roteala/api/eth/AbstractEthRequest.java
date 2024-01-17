@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.Data;
 import uk.co.roteala.common.*;
-import uk.co.roteala.common.events.PeersContainer;
 import uk.co.roteala.common.monetary.Vault;
 
 import java.util.List;

@@ -3,6 +3,10 @@ package uk.co.roteala.server;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
+import io.vertx.core.http.HttpConnection;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.net.NetServer;
 import io.vertx.core.net.NetServerOptions;
 import io.vertx.core.net.NetSocket;
@@ -32,12 +36,33 @@ public class ServerInitializer extends AbstractVerticle {
     private final BrokerConfigs configs;
 
     @Autowired
-    private final TransmissionHandler transmissionHandler;
+    private TransmissionHandler transmissionHandler;
 
-    private final ConnectionsStorage connectionStorage;
+    @Autowired
+    private ConnectionsStorage connectionStorage;
 
     @Override
     public void start(Promise<Void> startPromise) {
+        NetServer server = this.tcpServerSetUp();
+        HttpServer webSocket = this.webSocketServer();
+
+        server.listen(result -> {
+            if(result.succeeded()) {
+                log.info("Broker server listening on port: {}", server.actualPort());
+                //startPromise.complete();
+            }
+        });
+
+        webSocket.listen(1337, result -> {
+            if (result.succeeded()) {
+                log.info("Web socket server started!");
+            }
+        });
+
+        startPromise.complete();
+    }
+
+    private NetServer tcpServerSetUp() {
         NetServerOptions options = new NetServerOptions();
         options.setPort(7331);
         options.setHost(configs.getNodeServerIP());
@@ -46,12 +71,35 @@ public class ServerInitializer extends AbstractVerticle {
 
         server.connectHandler(new SocketConnectionHandler());
 
-        server.listen(result -> {
-            if(result.succeeded()) {
-                log.info("Broker server listening on port: {}", server.actualPort());
-                startPromise.complete();
-            }
-        });
+        return server;
+    }
+
+    private HttpServer webSocketServer() {
+        HttpServerOptions options = new HttpServerOptions();
+        options.setPort(1337);
+        options.setHost(configs.getNodeServerIP());
+
+        HttpServer server = vertx.createHttpServer(options);
+
+        server.connectionHandler(new HttpWebSocketHandler());
+
+        server.webSocketHandler(new WebSocketHandler());
+
+        return server;
+    }
+
+    private class WebSocketHandler implements Handler<ServerWebSocket> {
+        @Override
+        public void handle(ServerWebSocket event) {
+            event.write();
+        }
+    }
+
+    private class HttpWebSocketHandler implements Handler<HttpConnection> {
+        @Override
+        public void handle(HttpConnection event) {
+            event.
+        }
     }
 
     private class SocketConnectionHandler implements Handler<NetSocket> {
@@ -65,13 +113,12 @@ public class ServerInitializer extends AbstractVerticle {
             storage.getStorage(StorageTypes.PEERS)
                             .put(true, peer.getKey(), peer);
 
+            log.info("New peer connection from: {}", event.remoteAddress().hostAddress());
+            connectionStorage.getAsServerConnections().add(event);
+
             event.handler(transmissionHandler
                     .processWithConnection(event)
             );
-
-            log.info("New peer from:{}", peer);
-            connectionStorage.getClientConnections()
-                    .add(event);
 
             event.closeHandler(close -> {
                 peer.setActive(false);
@@ -82,7 +129,7 @@ public class ServerInitializer extends AbstractVerticle {
 
                 log.info("Node: {} disconnected!", event.remoteAddress().hostAddress());
 
-                connectionStorage.getClientConnections()
+                connectionStorage.getAsServerConnections()
                         .remove(event);
             });
         }

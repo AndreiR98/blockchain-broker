@@ -19,6 +19,7 @@ import uk.co.roteala.net.ConnectionsStorage;
 import uk.co.roteala.storage.Storages;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 
 @Slf4j
 @Component
@@ -44,7 +45,7 @@ public class TransactionProcessor implements Consumer<Flux<MempoolTransaction>> 
                     mempoolTransaction.getKey(), mempoolTransaction);
 
             messageTemplateSink.tryEmitNext(MessageTemplate.builder()
-                    .eventAction(EventActions.VERIFY_THEN_APPEND)
+                    .eventAction(EventActions.VERIFY)
                     .eventType(EventTypes.MEMPOOL_TRANSACTION)
                     .group(ReceivingGroup.CLIENTS)
                     .message(mempoolTransaction)
