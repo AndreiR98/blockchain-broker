@@ -14,6 +14,8 @@ import uk.co.roteala.common.*;
 import uk.co.roteala.common.monetary.Coin;
 import uk.co.roteala.common.monetary.CoinConverter;
 
+import java.math.BigInteger;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -22,15 +24,15 @@ import uk.co.roteala.common.monetary.CoinConverter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TransactionResponse {
     private String hash;
-    private String pseudoHash;
     private Integer blockNumber;
     private String from;
     private String to;
     private Integer version;
     private Integer transactionIndex;
-    @JsonSerialize(converter = CoinConverter.class)
-    private Coin value;
-    private Integer nonce;
+    private BigInteger amount;
+    private BigInteger processingFees;
+    private BigInteger networkFees;
+    private String nonce;
     private long timeStamp;
     private long confirmations;
     private long blockTime;

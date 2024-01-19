@@ -9,16 +9,22 @@ import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.netty.Connection;
 import uk.co.roteala.api.ResultStatus;
+import uk.co.roteala.api.account.AccountRequest;
+import uk.co.roteala.api.account.AccountResponse;
 import uk.co.roteala.api.block.BlockRequest;
 import uk.co.roteala.api.block.BlockResponse;
 import uk.co.roteala.api.mempool.LatestMempoolResponse;
+import uk.co.roteala.api.transaction.TransactionRequest;
+import uk.co.roteala.api.transaction.TransactionResponse;
 import uk.co.roteala.common.*;
 import uk.co.roteala.common.messenger.*;
 import uk.co.roteala.common.storage.ColumnFamilyTypes;
 import uk.co.roteala.common.storage.StorageTypes;
 import uk.co.roteala.exceptions.BlockException;
+import uk.co.roteala.exceptions.TransactionException;
 import uk.co.roteala.exceptions.errorcodes.StorageErrorCode;
 
+import uk.co.roteala.exceptions.errorcodes.TransactionErrorCode;
 import uk.co.roteala.net.ConnectionsStorage;
 import uk.co.roteala.storage.Storages;
 import uk.co.roteala.utils.BlockchainUtils;
@@ -73,41 +79,42 @@ public class ExplorerServices {
 //        return response;
 //    }
 
-//    public TransactionResponse getTransactionByHash(@Valid TransactionRequest transactionRequest){
-//        TransactionResponse response = new TransactionResponse();
-//
-//        try {
-//            Transaction transaction = storage.getTransactionByKey(transactionRequest.getTransactionHash());
-//
-//            if(transaction == null) {
-//                throw new TransactionException(TransactionErrorCode.TRANSACTION_NOT_FOUND);
-//            }
-//
-//            response.setHash(transaction.getHash());
-//            response.setPseudoHash(transaction.getPseudoHash());
-//            response.setBlockNumber(transaction.getBlockNumber());
-//            response.setFrom(transaction.getFrom());
-//            response.setTo(transaction.getTo());
-//            response.setValue(transaction.getValue());
-//            response.setVersion(transaction.getVersion());
-//            response.setTransactionIndex(transaction.getTransactionIndex());
-//            response.setFees(transaction.getFees());
-//            response.setNonce(transaction.getNonce());
-//            response.setTimeStamp(transaction.getTimeStamp());
-//            response.setConfirmations(transaction.getConfirmations());
-//            response.setBlockTime(transaction.getBlockTime());
-//            response.setPubKeyHash(transaction.getPubKeyHash());
-//            response.setTransactionStatus(transaction.getStatus());
-//
-//            response.setResult(ResultStatus.SUCCESS);
-//
-//            return response;
-//        } catch (Exception e) {
-//            return TransactionResponse.builder()
-//                    .result(ResultStatus.ERROR)
-//                    .message(e.getMessage()).build();
-//        }
-//    }
+    public TransactionResponse getTransactionByHash(@Valid TransactionRequest transactionRequest){
+        TransactionResponse response = new TransactionResponse();
+
+        try {
+            Transaction transaction = (Transaction) this.storages.getStorage(StorageTypes.BLOCKCHAIN)
+                    .get(ColumnFamilyTypes.TRANSACTIONS, transactionRequest.getTransactionHash().getBytes(StandardCharsets.UTF_8));
+
+            if(transaction == null) {
+                throw new TransactionException(TransactionErrorCode.TRANSACTION_NOT_FOUND);
+            }
+
+            response.setHash(transaction.getHash());
+            response.setBlockNumber(transaction.getBlockNumber());
+            response.setFrom(transaction.getFrom());
+            response.setTo(transaction.getTo());
+            response.setAmount(transaction.getAmount());
+            response.setVersion(transaction.getVersion());
+            response.setTransactionIndex(transaction.getTransactionIndex());
+            response.setNetworkFees(transaction.getNetworkFees());
+            response.setProcessingFees(transaction.getProcessingFees());
+            response.setNonce(transaction.getNonce());
+            response.setTimeStamp(transaction.getTimeStamp());
+            response.setConfirmations(transaction.getConfirmations());
+            response.setBlockTime(transaction.getBlockTime());
+            response.setPubKeyHash(transaction.getPubKeyHash());
+            response.setTransactionStatus(transaction.getStatus());
+
+            response.setResult(ResultStatus.SUCCESS);
+
+            return response;
+        } catch (Exception e) {
+            return TransactionResponse.builder()
+                    .result(ResultStatus.ERROR)
+                    .message(e.getMessage()).build();
+        }
+    }
 
     public BlockResponse getBlock(@Valid BlockRequest blockRequest){
         BlockResponse response = new BlockResponse();
@@ -477,27 +484,29 @@ public class ExplorerServices {
         genesisBlock.setTransactions(transactions);
     }
 
-//    public AccountResponse getAccount(@Valid AccountRequest accountRequest){
-//        AccountResponse response = new AccountResponse();
-//
-//        try {
-//            AccountModel account = storage.getAccountByAddress(accountRequest.getAddress());
-//
-//            Map<String, List<String>> transactionByUser = storage.getTransactionsByUser(account.getAddress());
-//
-//            response.setAddress(account.getAddress());
-//            response.setBalance(account.getBalance());
-//            response.setInboundAmount(account.getInboundAmount());
-//            response.setOutboundAmount(account.getOutboundAmount());
-//            response.setTransactions(transactionByUser);
-//
-//            response.setResult(ResultStatus.SUCCESS);
-//        } catch (Exception e) {
-//            response.setResult(ResultStatus.ERROR);
-//        }
-//
-//        return response;
-//    }
+    public AccountResponse getAccount(@Valid AccountRequest accountRequest){
+        AccountResponse response = new AccountResponse();
+
+        try {
+            final String accountAddress = accountRequest.getAddress().toLowerCase();
+
+            Account account = Optional.ofNullable((Account) this.storages.getStorage(StorageTypes.STATE)
+                            .get(ColumnFamilyTypes.ACCOUNTS, accountAddress.getBytes(StandardCharsets.UTF_8)))
+                    .orElseGet(() -> Account.empty(accountAddress));
+
+            response.setAddress(account.getAddress());
+            response.setBalance(account.getBalance().toString());
+            response.setVirtualBalance(account.getVirtualBalance().toString());
+            response.setTransactionsIn(account.getTransactionsIn());
+            response.setTransactionsOut(account.getTransactionsOut());
+
+            response.setResult(ResultStatus.SUCCESS);
+        } catch (Exception e) {
+            response.setResult(ResultStatus.ERROR);
+        }
+
+        return response;
+    }
 //
 //    public MempoolBlocksResponse getMempoolBlocksGrouped(){
 //        MempoolBlocksResponse response = new MempoolBlocksResponse();

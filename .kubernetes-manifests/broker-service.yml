@@ -11,6 +11,6 @@ spec:
       targetPort: 7331
       protocol: TCP
     - name: api
-      port: 8080
-      targetPort: 8080
+      port: 7332
+      targetPort: 7332
   type: LoadBalancer

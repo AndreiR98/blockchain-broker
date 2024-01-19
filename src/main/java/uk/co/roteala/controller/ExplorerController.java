@@ -56,22 +56,22 @@ public class ExplorerController {
 //        return this.explorerServices.processExplorerRequest(explorerRequest);
 //    }
 
-//    @Operation(summary = "Get transaction from storage")
-//    @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransactionRequest.class)), required = true)
-//    @ApiResponses(value = {
-//            @ApiResponse(responseCode = "200", description = "Transaction retrieved successfully", content = {@Content(mediaType = "application/json",
-//                    schema = @Schema(implementation = TransactionResponse.class))}),
-//            @ApiResponse(responseCode = "404", description = "Invalid transaction data", content = {@Content(mediaType = "application/json",
-//                    schema = @Schema(implementation = ApiError.class))}),
-//            @ApiResponse(responseCode = "400", description = "BadRequest", content = {@Content(mediaType = "application/json",
-//                    schema = @Schema(implementation = ApiError.class))})})
-//    @GetMapping("/transaction/{hash}")
-//    @ResponseStatus(HttpStatus.OK)
-//    public TransactionResponse getTransactionsByHash(@Valid @PathVariable String hash){
-//        TransactionRequest request = new TransactionRequest();
-//        request.setTransactionHash(hash);
-//        return this.explorerServices.getTransactionByHash(request);
-//    }
+    @Operation(summary = "Get transaction from storage")
+    @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransactionRequest.class)), required = true)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Transaction retrieved successfully", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = TransactionResponse.class))}),
+            @ApiResponse(responseCode = "404", description = "Invalid transaction data", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ApiError.class))}),
+            @ApiResponse(responseCode = "400", description = "BadRequest", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ApiError.class))})})
+    @GetMapping("/transaction/{hash}")
+    @ResponseStatus(HttpStatus.OK)
+    public TransactionResponse getTransactionsByHash(@Valid @PathVariable String hash){
+        TransactionRequest request = new TransactionRequest();
+        request.setTransactionHash(hash);
+        return this.explorerServices.getTransactionByHash(request);
+    }
 
 //    @Operation(summary = "Get transaction from storage")
 //    @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransactionRequest.class)), required = true)
@@ -136,21 +136,6 @@ public class ExplorerController {
         return this.explorerServices.getLatestMempool(page);
     }
 
-    @Operation(summary = "Get block from storage")
-    @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = BlockRequest.class)), required = true)
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Block retrieved successfully", content = {@Content(mediaType = "application/json",
-                    schema = @Schema(implementation = BlockResponse.class))}),
-            @ApiResponse(responseCode = "404", description = "Invalid block data", content = {@Content(mediaType = "application/json",
-                    schema = @Schema(implementation = ApiError.class))}),
-            @ApiResponse(responseCode = "400", description = "BadRequest", content = {@Content(mediaType = "application/json",
-                    schema = @Schema(implementation = ApiError.class))})})
-    @GetMapping("/connection")
-    @ResponseStatus(HttpStatus.OK)
-    public void getBlockByIndex(){
-        log.info("Block:{}", Constants.GENESIS_BLOCK);
-        this.explorerServices.testConnection();
-    }
 
 //    @Operation(summary = "Get account from storage")
 //    @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = PseudoTransactionRequest.class)), required = true)
@@ -167,23 +152,23 @@ public class ExplorerController {
 //        return this.explorerServices.getAccount(accountRequest);
 //    }
 
-//    @Operation(summary = "Get account from storage")
-//    @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = PseudoTransactionRequest.class)), required = true)
-//    @ApiResponses(value = {
-//            @ApiResponse(responseCode = "200", description = "Account retrieved successfully", content = {@Content(mediaType = "application/json",
-//                    schema = @Schema(implementation = PseudoTransactionResponse.class))}),
-//            @ApiResponse(responseCode = "404", description = "Invalid account data", content = {@Content(mediaType = "application/json",
-//                    schema = @Schema(implementation = ApiError.class))}),
-//            @ApiResponse(responseCode = "400", description = "BadRequest", content = {@Content(mediaType = "application/json",
-//                    schema = @Schema(implementation = ApiError.class))})})
-//    @GetMapping("/address/{address}")
-//    @ResponseStatus(HttpStatus.OK)
-//    public AccountResponse getAccountByAddress(@Valid @PathVariable String address){
-//        AccountRequest accountRequest = new AccountRequest();
-//        accountRequest.setAddress(address);
-//
-//        return this.explorerServices.getAccount(accountRequest);
-//    }
+    @Operation(summary = "Get account from storage")
+    @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = PseudoTransactionRequest.class)), required = true)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Account retrieved successfully", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PseudoTransactionResponse.class))}),
+            @ApiResponse(responseCode = "404", description = "Invalid account data", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ApiError.class))}),
+            @ApiResponse(responseCode = "400", description = "BadRequest", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ApiError.class))})})
+    @GetMapping("/address/{address}")
+    @ResponseStatus(HttpStatus.OK)
+    public AccountResponse getAccountByAddress(@Valid @PathVariable String address){
+        AccountRequest accountRequest = new AccountRequest();
+        accountRequest.setAddress(address);
+
+        return this.explorerServices.getAccount(accountRequest);
+    }
 
 //    @Operation(summary = "Get mempool mapped block from storage")
 //    @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = MempoolBlocksRequest.class)), required = false)

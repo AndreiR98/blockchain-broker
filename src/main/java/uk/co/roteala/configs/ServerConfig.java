@@ -49,9 +49,6 @@ import java.util.function.Consumer;
 @RequiredArgsConstructor
 public class ServerConfig {
     private final Storages storage;
-
-    private List<WebsocketOutbound> webSocketConnections = new ArrayList<>();
-
     @Bean
     public ConnectionsStorage connectionsStorage() {
         return new ConnectionsStorage();
@@ -181,8 +178,8 @@ public class ServerConfig {
     public DisposableServer startWebSocketServer(WebSocketRouterHandler webSocketRouterHandler) {
         return HttpServer.create()
                 .port(1337)
-                .handle()
-                .route(webSocketRouterHandler)
+                //.handle()
+                //.route(webSocketRouterHandler)
                 .bindNow();
     }
 

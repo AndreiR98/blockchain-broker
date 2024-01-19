@@ -16,6 +16,7 @@ import uk.co.roteala.common.monetary.Coin;
 import uk.co.roteala.common.monetary.CoinConverter;
 
 import javax.validation.constraints.NotNull;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
@@ -26,14 +27,11 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AccountResponse {
     private String address;
-    @JsonSerialize(converter = CoinConverter.class)
-    private Coin balance;
-    @JsonSerialize(converter = CoinConverter.class)
-    private Coin outboundAmount;
-    @JsonSerialize(converter = CoinConverter.class)
-    private Coin inboundAmount;
+    private String balance;
+    private String virtualBalance;
     private Integer nonce;
-    private Map<String, List<String>> transactions;
+    private List<String> transactionsIn;
+    private List<String> transactionsOut;
     private String message;
     private ResultStatus result;
 }

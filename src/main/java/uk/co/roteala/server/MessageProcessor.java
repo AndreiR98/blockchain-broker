@@ -293,7 +293,7 @@ public class MessageProcessor implements Consumer<Flux<Message>> {
             Transaction transaction = mempoolTransaction.toTransaction(newMinedBlock, index);
 
             this.storages.getStorage(StorageTypes.BLOCKCHAIN)
-                    .put(true, transaction.getKey(), transaction);
+                    .put(true, ColumnFamilyTypes.TRANSACTIONS, transaction.getKey(), transaction);
 
             fundingSink.tryEmitNext(Funding.builder()
                     .targetAccountAddress(mempoolTransaction.getTo())
@@ -302,6 +302,7 @@ public class MessageProcessor implements Consumer<Flux<Message>> {
                     .networkFees(mempoolTransaction.getNetworkFees())
                     .processingFees(mempoolTransaction.getFees())
                     .hash(mempoolTransaction.getHash())
+                    .minerAddress(newMinedBlock.getHeader().getMinerAddress())
                     .type(Funding.TransactionType.TRANSACTION)
                     .build());
 
