@@ -49,13 +49,13 @@ public class Storages  {
     public Storage getStorage(StorageTypes storageType) {
         switch (storageType) {
             case STATE:
-                return this.stateTrieStorage;
+                return initializeStateTrieStorage();
             case PEERS:
-                return this.peers;
+                return initializePeersStorage();
             case MEMPOOL:
-                return this.mempoolBlockchain;
+                return initializeMempoolStorage();
             case BLOCKCHAIN:
-                return this.stateBlockchain;
+                return initializeBlockchainStorage();
             default:
                 throw new IllegalArgumentException("Unsupported StorageType: " + storageType);
         }
@@ -68,7 +68,7 @@ public class Storages  {
      * @throws StorageException if there is any failure during storage initialization.
      */
     @Bean
-    public void initializeStateTrieStorage() {
+    public Storage initializeStateTrieStorage() {
         try {
             DefaultStorage.ensurePathExists(configs.getStateTriePath());
 
@@ -86,7 +86,7 @@ public class Storages  {
 
             List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
 
-            this.stateTrieStorage = new Storage(StorageTypes.STATE,
+            return new Storage(StorageTypes.STATE,
                     RocksDB.open(dbOptions, configs.getStateTriePath().getAbsolutePath(),
                             columnFamilyDescriptors, columnFamilyHandles), columnFamilyHandles);
         } catch (Exception e) {
@@ -103,7 +103,7 @@ public class Storages  {
      * @throws StorageException if any error occurs during the initialization.
      */
     @Bean
-    public void initializeMempoolStorage() {
+    public Storage initializeMempoolStorage() {
         try {
             DefaultStorage.ensurePathExists(configs.getMempoolPath());
 
@@ -120,7 +120,7 @@ public class Storages  {
 
             List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
 
-            this.mempoolBlockchain = new Storage(StorageTypes.MEMPOOL,
+            return new Storage(StorageTypes.MEMPOOL,
                     RocksDB.open(dbOptions, configs.getMempoolPath().getAbsolutePath(),
                             columnFamilyDescriptors, columnFamilyHandles), columnFamilyHandles);
         } catch (Exception e) {
@@ -137,7 +137,7 @@ public class Storages  {
      * @throws StorageException if any error occurs during the initialization.
      */
     @Bean
-    public void initializeBlockchainStorage() {
+    public Storage initializeBlockchainStorage() {
         try {
             DefaultStorage.ensurePathExists(configs.getBlocksPath());
 
@@ -154,7 +154,7 @@ public class Storages  {
 
             List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
 
-            this.stateBlockchain = new Storage(StorageTypes.BLOCKCHAIN,
+            return new Storage(StorageTypes.BLOCKCHAIN,
                     RocksDB.open(dbOptions, configs.getBlocksPath().getAbsolutePath(),
                             columnFamilyDescriptors, columnFamilyHandles), columnFamilyHandles);
         } catch (Exception e) {
@@ -171,13 +171,13 @@ public class Storages  {
      * @throws StorageException if any error occurs during the initialization.
      */
     @Bean
-    public void initializePeersStorage() {
+    public Storage initializePeersStorage() {
         try {
             DefaultStorage.ensurePathExists(configs.getPeersPath());
 
             Options options = DefaultStorage.setupOptions(false);
 
-            this.peers = new Storage(StorageTypes.PEERS,
+            return new Storage(StorageTypes.PEERS,
                     RocksDB.open(options, configs.getPeersPath().getAbsolutePath()), null);
         } catch (Exception e) {
             log.error("Failed to initialize storage!", e);

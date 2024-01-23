@@ -1,27 +1,84 @@
-# Blockchain Broker (Roteala Broker)
+# Blockchain Project
 
 ![Blockchain Broker Logo](logo-medium.png)
 
-## Overview
+**- Building the future one block at a time**
 
-**Blockchain Broker**, known as **Roteala Broker**, It seamlessly performs essential roles such as acting as a seeder for newpeers, serving as an API endpoint for blockchain explorers, and functioning as an interface for wallets to conduct transactions between addresses.
+## Table of Contents
 
-## Mining Process
+- [Project Overview](#project-overview)
+- [Features](#features)
+- [Getting Started](#getting-started)
+- [Installation](#installation)
+- [Author](#author)
 
-The mining process in the Roteala Broker ecosystem can be described in a series of systematic steps:
+## Project Overview
 
-1. **Reception of Pseudo Transactions**: Nodes in the network receive new pseudo transactions.
-2. **Validation and Mempool Addition**: After the preliminary validation, these transactions are added to the individual node's local mempool.
-3. **Block Mining Initiation**: Nodes commence the process of mining a new block.
-4. **Block Header Broadcast**: Upon successful mining of a block, its header is broadcasted to all connected peers and the broker.
-5. **Header Validation by Peers**: Peers distinct from the original miner undertake the validation of the received block header.
-6. **Confirmation Communication**: Once a peer validates the header, it communicates a confirmation of the header's validity to the broker.
-7. **Consensus Check**: The broker, acting as a centralized authority, awaits until confirmations are received from more than 50% of the total network peers.
-8. **Header Append Order**: Upon achieving the necessary consensus, the broker issues a directive to append the new header.
-9. **Block Creation & State Chain Addition**: Leveraging the header, each node crafts the corresponding block and integrates it into their state chain.
-10. **Execution of Funds Movement**: Concurrently, as blocks are added, the associated fund movements (transactions) encapsulated within those blocks are executed.
+This is an early-stage blockchain project with a hierarchical administrative structure. In this project, brokers (governors) play a key role by allowing nodes to connect to them and act as peers for discovery. The Broker also provides API endpoints for wallets and explorer functionalities.
+
+Here's how the project works:
+- When a new transaction is initiated by a wallet, it is sent to a broker for initial verification (including signature, addresses, and amounts).
+- After verification, the transaction is broadcasted to the nodes.
+- Nodes will also verify the transaction and broadcast it, adding it to the mempool.
+- When a new block is mined, it is broadcasted to the broker and other peers.
+- Peers further validate the block, and when a consensus of 50%+1 (of all connected nodes) is reached, the broker sends an APPEND order.
+- All nodes append the block, create transactions, and update balances.
+
+## Features
+
+- Written in Java 11
+- Utilizes RocksDB for storage
+- Fully reactive flow design
+- Uses TCP connections
+- Deployable in Kubernetes or on a local area network (LAN)
+
+![Kubernetes Preview](kubernetes-preview.png)
+
+Persistent volume claims are used to store data.
+
+![Persistent Volume Claims](persistent-volume-claims.png)
+
+Broker Preview:
+
+![Broker Preview](broker-preview.png)
+
+Node Preview:
+
+![Node Preview](nodes-preview.png)
+
+Mining Process Flowchart:
 
 ![Mining Process Flowchart](flow.jpeg)
+
+## Getting Started
+
+To get started with this project, follow the installation instructions below.
+
+## Installation
+1. Download and install the commons:
+   https://gitlab.com/java-blockchain/blockchain-commons
+```shell
+mvn clean install -DskipTests -U
+```
+
+2. Set up the persistent volume claim for the broker:
+```shell
+kubectl apply -f broker-pvc.yml
+```
+
+3. Build the image
+```shell
+skaffold build
+```
+
+4. Run as docker container or kubernetes:
+```shell
+docker run -p 7331:7331 -p 7332:7332 -d blockchain-broker:latest
+```
+```shell
+kubectl apply -f broker-deployment.yml
+```
+For nodes, you only need to build the image and deploy it. There's no need to create persistent volume claims, as the StatefulSet will handle it. In Kubernetes, each image will bind to a specific pod ID.
 
 ## Author
 

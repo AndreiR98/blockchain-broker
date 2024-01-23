@@ -46,9 +46,6 @@ public class MessageProcessor implements Consumer<Flux<Message>> {
     private Cache<String, Integer> responseCache;
 
     @Autowired
-    private FundingServices fundingServices;
-
-    @Autowired
     private Sinks.Many<Funding> fundingSink;
 
     @Autowired
